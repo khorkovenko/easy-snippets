@@ -1,0 +1,57 @@
+<idea-plugin>
+    <id>io.github.khorkovenko.easysnippets</id>
+    <name>Easy Snippets</name>
+    <vendor url="https://github.com/khorkovenko/easy-snippets">khorkovenko</vendor>
+
+    <description><![CDATA[
+        <p>Saved terminal commands that you run with a shortcut, in the classic and in the new terminal, including SSH session tabs.</p>
+        <ul>
+            <li>Every command is stored as <b>description - command</b></li>
+            <li>Commands can live in folders (nested folders too) or at the top level without any folder</li>
+            <li>Mark commands as favourites and press the shortcut (Ctrl+Alt+Shift+E by default) to open a popup with them; type to filter, Enter to run</li>
+            <li>Create a chained command from several selected commands</li>
+            <li>Give a command or folder a shortcut of its own with Assign Shortcut; only those commands are listed in Settings | Keymap</li>
+            <li>Select several commands and group them into a folder</li>
+            <li>Run several commands one after another: a folder, a selection, or a command with several lines. The next command starts when the previous one has finished, also over SSH and through sudo su: the plugin waits for the prompt and never types into a command that asks for input</li>
+            <li>Optionally stop the sequence when a command fails</li>
+            <li>Commands that are only pasted into the prompt, so you can finish them by hand</li>
+            <li>Switch between an SSH terminal tab and the file tree of the same host in Remote Host, and back</li>
+        </ul>
+        <p>Manage the commands in <b>View | Tool Windows | Easy Snippets</b>.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.terminal</depends>
+    <depends optional="true" config-file="easySnippets-deployment.xml">com.jetbrains.plugins.webDeployment</depends>
+    <depends optional="true" config-file="easySnippets-hostView.xml">org.jetbrains.plugins.remote-run</depends>
+    <dependencies>
+        <module name="intellij.terminal.frontend"/>
+    </dependencies>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Easy Snippets"
+                    anchor="right"
+                    icon="/icons/easySnippets.svg"
+                    factoryClass="io.github.khorkovenko.easysnippets.SnippetsToolWindowFactory"/>
+        <postStartupActivity implementation="io.github.khorkovenko.easysnippets.SnippetShortcutsStartup"/>
+        <notificationGroup id="Easy Snippets" displayType="BALLOON"/>
+    </extensions>
+
+
+    <applicationListeners>
+        <listener class="io.github.khorkovenko.easysnippets.SnippetShortcutsUnloader"
+                  topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+    </applicationListeners>
+
+    <actions>
+        <action id="EasySnippets.ShowPopup"
+                class="io.github.khorkovenko.easysnippets.ShowSnippetsPopupAction"
+                text="Easy Snippets: Favourites..."
+                description="Show the favourite terminal commands and run the chosen one"
+                icon="/icons/easySnippets.svg">
+            <keyboard-shortcut first-keystroke="control alt shift E" keymap="$default"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <add-to-group group-id="TerminalToolwindowActionGroup" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>

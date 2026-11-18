@@ -1,0 +1,13 @@
+<idea-plugin>
+    <actions>
+        <action id="EasySnippets.SwitchHostView"
+                class="io.github.khorkovenko.easysnippets.SwitchHostViewAction"
+                text="Easy Snippets: Show Files of Host"
+                description="Show the file tree of the SSH host inside the terminal tab, or switch the tab back to the terminal"
+                icon="AllIcons.Nodes.Folder">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <add-to-group group-id="TerminalToolwindowActionGroup" anchor="last"/>
+            <add-to-group group-id="RemoteHostViewPopupMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
