@@ -102,7 +102,8 @@ object SnippetTransfer {
         val descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json").withTitle("Import Easy Snippets")
         val file = FileChooser.chooseFile(descriptor, project, null) ?: return null
         val imported = try {
-            fromJson(String(file.contentsToByteArray(), Charsets.UTF_8))
+            // Read from disk, not the VFS cache: the file is often edited outside the IDE just before importing
+            fromJson(Files.readString(file.toNioPath()))
         } catch (e: Exception) {
             Messages.showErrorDialog(project, "Cannot import ${file.name}: ${e.message}", "Import Easy Snippets")
             return null
