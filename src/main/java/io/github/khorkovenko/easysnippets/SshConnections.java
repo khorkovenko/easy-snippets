@@ -21,6 +21,14 @@ final class SshConnections {
 
     /** Starts {@code command} in the host's shell; its output is read from the returned process. */
     static Process exec(RemoteCredentials credentials, Project project, String command) throws Exception {
-        return RemoteCredentialsUtil.connectionBuilder(credentials, project).execBuilder(command).execute();
+        return exec(credentials, project, command, false);
+    }
+
+    /**
+     * Like {@link #exec(RemoteCredentials, Project, String)}, optionally with a terminal for the command. Hosts whose
+     * sudo is configured with "requiretty" refuse to run sudo without one. With a terminal, lines end in CR LF.
+     */
+    static Process exec(RemoteCredentials credentials, Project project, String command, boolean terminal) throws Exception {
+        return RemoteCredentialsUtil.connectionBuilder(credentials, project).execBuilder(command).withAllocatePty(terminal).execute();
     }
 }

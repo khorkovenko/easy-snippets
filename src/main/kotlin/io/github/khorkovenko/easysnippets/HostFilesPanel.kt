@@ -19,7 +19,6 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.remote.RemoteCredentialsHolder
@@ -191,7 +190,7 @@ class HostFilesPanel(private val project: Project, server: WebServerConfig, pare
 
     override fun dispose() {
         disposed = true
-        findProcess?.destroy()
+        destroyInBackground(findProcess)
         finder.shutdown()
         sftp.execute { closeChannel() }
         sftp.shutdown()
@@ -341,7 +340,7 @@ class HostFilesPanel(private val project: Project, server: WebServerConfig, pare
 
     private fun clearResults() {
         searchGeneration++
-        findProcess?.destroy()
+        destroyInBackground(findProcess)
         if (results == null) return
         results = null
         showTree { filter.isNotEmpty() || it.path in expandedBeforeFilter }
@@ -355,7 +354,7 @@ class HostFilesPanel(private val project: Project, server: WebServerConfig, pare
         }
         val generation = ++searchGeneration
         val base = searchBase
-        findProcess?.destroy()
+        destroyInBackground(findProcess)
         results = emptyList()
         resultsInfo = "Searching in $base ..."
         showTree { true }
@@ -526,25 +525,15 @@ class HostFilesPanel(private val project: Project, server: WebServerConfig, pare
         val entries = selectedEntries()
         if (entries.isEmpty()) return
         val host = credentials.host?.takeIf { it.isNotEmpty() } ?: rootEntry.name
-        val target = buildString {
-            credentials.userName?.takeIf { it.isNotEmpty() }?.let { append(it).append('@') }
-            append(host)
-        }
-        val port = credentials.port.takeIf { it > 0 && it != 22 }?.let { "-P $it " }.orEmpty()
-        // One command per line, so it works in every shell; single quotes keep "$", spaces and backticks literal
+        // One command per line, so it works in every shell
         val command = entries.joinToString("\n") { entry ->
-            val recursive = if (entry.kind == EntryKind.FILE) "" else "-r "
-            "scp $port$recursive${localQuote("$target:${entry.path}")} ."
+            scpDownloadCommand(credentials.userName, host, credentials.port, entry.path, recursive = entry.kind != EntryKind.FILE)
         }
         copy(command)
         notify("Download command copied. Paste it in a local terminal: " +
             (if (entries.size == 1) "'${entries[0].name}' is" else "the ${entries.size} items are") +
             " saved into the folder that terminal is in.")
     }
-
-    /** Quotes for the local terminal: PowerShell on Windows doubles a quote inside single quotes, other shells close and reopen. */
-    private fun localQuote(text: String): String =
-        "'" + text.replace("'", if (SystemInfo.isWindows) "''" else "'\\''") + "'"
 
     private fun copy(text: String) =CopyPasteManager.getInstance().setContents(StringSelection(text))
 

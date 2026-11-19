@@ -4,20 +4,29 @@
     <vendor url="https://github.com/khorkovenko/easy-snippets">khorkovenko</vendor>
 
     <description><![CDATA[
-        <p>Saved terminal commands that you run with a shortcut, in the classic and in the new terminal, including SSH session tabs.</p>
+        <p>Saved terminal commands that you run with a click or a shortcut, in the classic and the new terminal,
+           local shells and SSH sessions. Plus two tools for remote hosts: a file tree inside the terminal tab and a
+           live log watcher.</p>
+        <p><b>Snippets</b></p>
         <ul>
-            <li>Every command is stored as <b>description - command</b></li>
-            <li>Commands can live in folders (nested folders too) or at the top level without any folder</li>
-            <li>Mark commands as favourites and press the shortcut (Ctrl+Alt+Shift+E by default) to open a popup with them; type to filter, Enter to run</li>
-            <li>Create a chained command from several selected commands</li>
-            <li>Give a command or folder a shortcut of its own with Assign Shortcut; only those commands are listed in Settings | Keymap</li>
-            <li>Select several commands and group them into a folder</li>
-            <li>Run several commands one after another: a folder, a selection, or a command with several lines. The next command starts when the previous one has finished, also over SSH and through sudo su: the plugin waits for the prompt and never types into a command that asks for input</li>
-            <li>Optionally stop the sequence when a command fails</li>
-            <li>Commands that are only pasted into the prompt, so you can finish them by hand</li>
-            <li>Switch between an SSH terminal tab and the file tree of the same host in Remote Host, and back</li>
+            <li>Commands with a description, in folders (nested too) or at the top level</li>
+            <li>Favourites popup on one shortcut (Ctrl+Alt+Shift+E by default): type to filter, Enter to run</li>
+            <li>A shortcut of its own for any command or folder; only those appear in Settings | Keymap</li>
+            <li>Sequences: run a selection, a folder, or a chained command step by step. The next step starts when the
+                previous one has finished, also over SSH and through <code>sudo su</code>: the plugin waits for the
+                prompt and never types into a command that is asking for input</li>
+            <li>Paste-only commands, copy-instead-of-run mode, JSON import and export</li>
         </ul>
-        <p>Manage the commands in <b>View | Tool Windows | Easy Snippets</b>.</p>
+        <p><b>Remote hosts</b> (IDEs with SSH support and the FTP/SFTP Connectivity plugin)</p>
+        <ul>
+            <li>Host files: switch an SSH terminal tab to the host's file tree and back; open and edit files, search
+                the host, copy a download command</li>
+            <li>Log Watcher: follow a log file or a command such as <code>journalctl -f</code> over the IDE's own SSH
+                connection, coloured by level, with search results marked on the scrollbar, a whole-file view and a
+                download command</li>
+            <li>Browser console: follow the console of a page such as <code>localhost:3000</code> in Chrome or Edge</li>
+        </ul>
+        <p>Open it from <b>View | Tool Windows | Easy Snippets</b>.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

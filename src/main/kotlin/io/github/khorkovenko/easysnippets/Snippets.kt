@@ -74,6 +74,14 @@ class SnippetStore : PersistentStateComponent<SnippetStore.State> {
         /** The search field of the host file tree: react to typing at all, and search the host or only opened folders. */
         var hostSearchEnabled: Boolean = true
         var hostDeepSearch: Boolean = true
+        /** Log Watcher: the SSH configuration each log was last watched on, by snippet id or path. */
+        var logHosts: MutableMap<String, String> = HashMap()
+        /** Log Watcher: the logs saved with its + button, the sudo box and the host used last. */
+        @get:XCollection(style = XCollection.Style.v2) var savedLogs: MutableList<SavedLog> = mutableListOf()
+        var logSudo: Boolean = true
+        var lastLogHost: String = ""
+        /** Log Watcher: what was watched recently, newest first. */
+        @get:XCollection(style = XCollection.Style.v2) var logHistory: MutableList<String> = mutableListOf()
     }
 
     private var state = State()
@@ -116,6 +124,24 @@ class SnippetStore : PersistentStateComponent<SnippetStore.State> {
         get() = state.hostDeepSearch
         set(value) {
             state.hostDeepSearch = value
+        }
+
+    val logHosts: MutableMap<String, String> get() = state.logHosts
+
+    val savedLogs: MutableList<SavedLog> get() = state.savedLogs
+
+    val logHistory: MutableList<String> get() = state.logHistory
+
+    var logSudo: Boolean
+        get() = state.logSudo
+        set(value) {
+            state.logSudo = value
+        }
+
+    var lastLogHost: String
+        get() = state.lastLogHost
+        set(value) {
+            state.lastLogHost = value
         }
 
     /** Every item, folders before their content. */

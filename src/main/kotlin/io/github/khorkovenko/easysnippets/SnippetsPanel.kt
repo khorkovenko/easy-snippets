@@ -52,9 +52,18 @@ import javax.swing.tree.TreePath
 class SnippetsToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val panel = SnippetsPanel(project)
-        val content = ContentFactory.getInstance().createContent(panel, "", false)
+        val content = ContentFactory.getInstance().createContent(panel, "Snippets", false)
         content.setDisposer(panel)
+        content.isCloseable = false
         toolWindow.contentManager.addContent(content)
+        // The second tab follows log files over SSH; it exists only in IDEs that have SSH support
+        if (hostFeaturesAvailable) {
+            val watcher = LogWatcherPanel(project)
+            val logs = ContentFactory.getInstance().createContent(watcher, LOG_WATCHER_TAB, false)
+            logs.setDisposer(watcher)
+            logs.isCloseable = false
+            toolWindow.contentManager.addContent(logs)
+        }
     }
 }
 
@@ -161,6 +170,16 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
             AllIcons.ToolbarDecorator.Export, { store.items.isNotEmpty() }) { SnippetTransfer.export(project, topSelected()) }
         val shortcut = action("Assign Shortcut...", "Give the selected command or folder a shortcut of its own",
             AllIcons.Actions.Lightning, { selectedItems().size == 1 }) { assignShortcut() }
+        val watchLog = object : DumbAwareAction("Watch Log", "Open the Log Watcher tab; with a command selected, " +
+            "put it into the Log field there (a file viewer such as less /path follows that file)", AllIcons.Actions.Preview) {
+            override fun getActionUpdateThread() = ActionUpdateThread.EDT
+            override fun update(e: AnActionEvent) {
+                e.presentation.isEnabledAndVisible = hostFeaturesAvailable
+            }
+
+            override fun actionPerformed(e: AnActionEvent) =
+                showLogWatcher(project, selectedItems().singleOrNull()?.takeIf { !it.folder }?.steps()?.firstOrNull())
+        }
         val copyMode = object : ToggleAction("Copy Instead of Insert",
             "On: Run copies the command to the clipboard and you paste it yourself. Off: Run types it into the terminal",
             AllIcons.Actions.Copy), DumbAware {
@@ -178,7 +197,7 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
         edit.registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0)), tree)
         addCommand.registerCustomShortcutSet(CommonShortcuts.getInsert(), tree)
 
-        val actions = DefaultActionGroup(run, Separator.getInstance(), addCommand, addFolder, edit, remove,
+        val actions = DefaultActionGroup(run, watchLog, Separator.getInstance(), addCommand, addFolder, edit, remove,
             Separator.getInstance(), chain, favorite, shortcut, Separator.getInstance(), up, down, group, moveTo, Separator.getInstance(), copyMode, stopOnFailure,
             Separator.getInstance(), import, export, Separator.getInstance(), expandAll, collapseAll)
         horizontalToolbar = ActionManager.getInstance().createActionToolbar("EasySnippetsToolbar", actions, true)
