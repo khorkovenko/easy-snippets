@@ -12,6 +12,7 @@ import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.keymap.impl.ui.EditKeymapsDialog
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
@@ -36,6 +37,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
 import java.awt.BorderLayout
 import java.awt.Font
+import java.awt.datatransfer.StringSelection
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.awt.event.KeyEvent
@@ -135,6 +137,8 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
         val addFolder = action("Add Folder", "Add an empty folder", AllIcons.Actions.NewFolder) { addFolder() }
         val edit = action("Edit", "Edit the selected command or rename the folder", AllIcons.Actions.Edit,
             { selectedItems().size == 1 }) { editSelected() }
+        val copy = action("Copy Command", "Copy the selected commands to the clipboard, one per line",
+            AllIcons.Actions.Copy, { runnableSelection().isNotEmpty() }) { copySelected() }
         val remove = action("Delete", "Delete the selected commands and folders", AllIcons.General.Remove,
             { selectedItems().isNotEmpty() }) { removeSelected() }
         val up = action("Move Up", null, AllIcons.Actions.MoveUp, { canMove(-1) }) { move(-1) }
@@ -195,9 +199,11 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
         run.registerCustomShortcutSet(CommonShortcuts.ENTER, tree)
         remove.registerCustomShortcutSet(CommonShortcuts.getDelete(), tree)
         edit.registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0)), tree)
+        // Follows the keymap's Copy shortcut (Ctrl+C by default)
+        copy.registerCustomShortcutSet(CommonShortcuts.getCopy(), tree)
         addCommand.registerCustomShortcutSet(CommonShortcuts.getInsert(), tree)
 
-        val actions = DefaultActionGroup(run, watchLog, Separator.getInstance(), addCommand, addFolder, edit, remove,
+        val actions = DefaultActionGroup(run, watchLog, Separator.getInstance(), addCommand, addFolder, edit, copy, remove,
             Separator.getInstance(), chain, favorite, shortcut, Separator.getInstance(), up, down, group, moveTo, Separator.getInstance(), copyMode, stopOnFailure,
             Separator.getInstance(), import, export, Separator.getInstance(), expandAll, collapseAll)
         horizontalToolbar = ActionManager.getInstance().createActionToolbar("EasySnippetsToolbar", actions, true)
@@ -280,6 +286,11 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
 
     private fun runSelected() {
         SnippetRunner.getInstance().run(project, runnableSelection())
+    }
+
+    private fun copySelected() {
+        val commands = runnableSelection().flatMap { it.steps() }
+        if (commands.isNotEmpty()) CopyPasteManager.getInstance().setContents(StringSelection(commands.joinToString("\n")))
     }
 
     private fun addSnippet() {
