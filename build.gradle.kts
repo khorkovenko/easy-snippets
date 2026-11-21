@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.khorkovenko.easysnippets"
-version = "1.0.0"
+version = "1.0.2"
 
 repositories {
     mavenCentral()
@@ -36,6 +36,12 @@ intellijPlatform {
             untilBuild = provider { null } // no upper bound
         }
         changeNotes = """
+            <p><b>1.0.2</b>: a Remove All Favourites button (crossed star) on the toolbar unstars every command and
+            folder at once.</p>
+            <p><b>1.0.1</b>: the favourite star is shown at the start of a row, and starred items are listed in a
+            Favourites folder at the top of the tree while there are any. An Insert Snippet button on the prompt inputs
+            of AI Assistant and of agent sessions types the chosen command into the input; the terminal's context menu
+            opens the favourites popup.</p>
             <p><b>1.0.0</b>: first release. Terminal commands in folders or at the top level, a shortcut popup,
             a shortcut per command, grouping of selected commands into a folder and sequential runs.</p>
         """.trimIndent()

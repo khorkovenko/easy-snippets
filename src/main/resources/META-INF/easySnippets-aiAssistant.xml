@@ -1,0 +1,8 @@
+<idea-plugin>
+    <actions>
+        <!-- The buttons at the bottom left of the AI Assistant chat input (Add Context, #, web search) -->
+        <reference ref="EasySnippets.InsertIntoInput">
+            <add-to-group group-id="AIAssistant.ToolWindow.Chat.Input.Left" anchor="last"/>
+        </reference>
+    </actions>
+</idea-plugin>

@@ -33,6 +33,9 @@
     <depends>org.jetbrains.plugins.terminal</depends>
     <depends optional="true" config-file="easySnippets-deployment.xml">com.jetbrains.plugins.webDeployment</depends>
     <depends optional="true" config-file="easySnippets-hostView.xml">org.jetbrains.plugins.remote-run</depends>
+    <!-- The Insert Snippet button on the prompt inputs of JetBrains AI Assistant and of the agent sessions (Air) -->
+    <depends optional="true" config-file="easySnippets-aiAssistant.xml">com.intellij.ml.llm</depends>
+    <depends optional="true" config-file="easySnippets-air.xml">com.intellij.air</depends>
     <dependencies>
         <module name="intellij.terminal.frontend"/>
     </dependencies>
@@ -61,6 +64,15 @@
             <keyboard-shortcut first-keystroke="control alt shift E" keymap="$default"/>
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <add-to-group group-id="TerminalToolwindowActionGroup" anchor="last"/>
+            <!-- The reworked terminal has no toolbar under its prompt; its context menus are the closest place -->
+            <add-to-group group-id="Terminal.ReworkedTerminalContextMenu" anchor="first"/>
+            <add-to-group group-id="Terminal.PromptContextMenu" anchor="last"/>
         </action>
+        <!-- Added to input toolbars by the optional config files -->
+        <action id="EasySnippets.InsertIntoInput"
+                class="io.github.khorkovenko.easysnippets.InsertSnippetIntoInputAction"
+                text="Insert Snippet..."
+                description="Choose an Easy Snippets command and type it into this input"
+                icon="/icons/easySnippets.svg"/>
     </actions>
 </idea-plugin>

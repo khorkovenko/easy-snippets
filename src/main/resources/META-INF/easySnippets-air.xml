@@ -1,0 +1,8 @@
+<idea-plugin>
+    <actions>
+        <!-- The buttons at the bottom left of the agent session prompt ("New Session"), next to Attach -->
+        <reference ref="EasySnippets.InsertIntoInput">
+            <add-to-group group-id="Air.Prompt.Composer.LeftActions" anchor="last"/>
+        </reference>
+    </actions>
+</idea-plugin>

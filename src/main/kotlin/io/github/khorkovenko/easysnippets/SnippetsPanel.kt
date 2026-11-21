@@ -26,6 +26,7 @@ import com.intellij.ui.ColoredTreeCellRenderer
 import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
+import com.intellij.ui.RowIcon
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.SimpleTextAttributes
@@ -33,6 +34,7 @@ import com.intellij.ui.TreeSpeedSearch
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.treeStructure.Tree
+import com.intellij.util.ui.EmptyIcon
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
 import java.awt.BorderLayout
@@ -69,15 +71,22 @@ class SnippetsToolWindowFactory : ToolWindowFactory, DumbAware {
     }
 }
 
-/** Renders a command as "description - command" and a folder with the number of commands in it. */
-fun renderSnippet(component: SimpleColoredComponent, item: SnippetItem) {
+/**
+ * Renders a command as "description - command" and a folder with the number of commands in it. A favourite starts
+ * with a star; with [reserveStarSpace] the other rows leave room for it, so names stay in one column.
+ */
+fun renderSnippet(component: SimpleColoredComponent, item: SnippetItem, reserveStarSpace: Boolean = false) {
+    val icon = if (item.folder) EasySnippetsIcons.Folder else EasySnippetsIcons.Command
+    component.icon = when {
+        item.favorite -> RowIcon(EasySnippetsIcons.Favorite, icon)
+        reserveStarSpace -> RowIcon(EmptyIcon.create(EasySnippetsIcons.Favorite), icon)
+        else -> icon
+    }
     if (item.folder) {
-        component.icon = EasySnippetsIcons.Folder
         component.append(item.name)
         val count = item.snippets().size
         component.append(if (count == 1) "  1 command" else "  $count commands", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
     } else {
-        component.icon = EasySnippetsIcons.Command
         val preview = item.commandPreview()
         if (item.name.isBlank() || item.name == preview) {
             component.append(preview)
@@ -87,9 +96,14 @@ fun renderSnippet(component: SimpleColoredComponent, item: SnippetItem) {
         }
         if (item.pasteOnly) component.append("  paste only", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
     }
-    if (item.favorite) component.append("  ★", SimpleTextAttributes.GRAYED_ATTRIBUTES)
     val shortcut = SnippetShortcuts.shortcutText(item)
     if (shortcut.isNotEmpty()) component.append("  $shortcut", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
+}
+
+/** The user object of the Favourites folder at the top of the tree. It is a view of the starred items, not an item. */
+private object FavouritesFolder {
+    const val KEY = "*favourites"
+    const val NAME = "Favourites"
 }
 
 /**
@@ -108,6 +122,8 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     private val horizontalToolbar: ActionToolbar
     private val verticalToolbar: ActionToolbar
     private var wideLayout: Boolean? = null
+    /** Set by [rebuild]: whether any item is starred, so the Favourites folder is shown. */
+    private var hasFavourites = false
 
     init {
         tree.isRootVisible = false
@@ -115,10 +131,19 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
         tree.cellRenderer = object : ColoredTreeCellRenderer() {
             override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean,
                                                leaf: Boolean, row: Int, hasFocus: Boolean) {
-                itemOf(value)?.let { renderSnippet(this, it) }
+                if ((value as? DefaultMutableTreeNode)?.userObject === FavouritesFolder) {
+                    icon = EasySnippetsIcons.Favorite
+                    append(FavouritesFolder.NAME)
+                    val count = store.all().count { it.favorite }
+                    append(if (count == 1) "  1 item" else "  $count items", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
+                    return
+                }
+                itemOf(value)?.let { renderSnippet(this, it, reserveStarSpace = hasFavourites) }
             }
         }
-        TreeSpeedSearch.installOn(tree, true) { path -> itemOf(path.lastPathComponent)?.label().orEmpty() }
+        TreeSpeedSearch.installOn(tree, true) { path ->
+            if (isFavouritesFolder(path.lastPathComponent)) FavouritesFolder.NAME else itemOf(path.lastPathComponent)?.label().orEmpty()
+        }
         tree.emptyText.text = "No commands yet"
         tree.emptyText.appendSecondaryText("Add a command", SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) { addSnippet() }
         tree.addTreeSelectionListener { updatePreview() }
@@ -160,6 +185,8 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
 
             override fun actionPerformed(e: AnActionEvent) = toggleFavorite()
         }
+        val clearFavourites = action("Remove All Favourites", "Unstar every command and folder",
+            EasySnippetsIcons.ClearFavourites, { hasFavourites }) { clearFavourites() }
         val stopOnFailure = object : ToggleAction("Stop When a Command Fails",
             "When several commands run one after another, skip the rest after a failed command", AllIcons.Actions.Suspend), DumbAware {
             override fun getActionUpdateThread() = ActionUpdateThread.EDT
@@ -204,7 +231,7 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
         addCommand.registerCustomShortcutSet(CommonShortcuts.getInsert(), tree)
 
         val actions = DefaultActionGroup(run, watchLog, Separator.getInstance(), addCommand, addFolder, edit, copy, remove,
-            Separator.getInstance(), chain, favorite, shortcut, Separator.getInstance(), up, down, group, moveTo, Separator.getInstance(), copyMode, stopOnFailure,
+            Separator.getInstance(), chain, favorite, clearFavourites, shortcut, Separator.getInstance(), up, down, group, moveTo, Separator.getInstance(), copyMode, stopOnFailure,
             Separator.getInstance(), import, export, Separator.getInstance(), expandAll, collapseAll)
         horizontalToolbar = ActionManager.getInstance().createActionToolbar("EasySnippetsToolbar", actions, true)
         verticalToolbar = ActionManager.getInstance().createActionToolbar("EasySnippetsToolbar", actions, false)
@@ -259,6 +286,16 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     }
 
     private fun itemOf(node: Any?): SnippetItem? = (node as? DefaultMutableTreeNode)?.userObject as? SnippetItem
+
+    private fun isFavouritesFolder(node: Any?): Boolean = (node as? DefaultMutableTreeNode)?.userObject === FavouritesFolder
+
+    /** Whether the node is the Favourites folder or one of the starred items listed in it. */
+    private fun inFavourites(path: TreePath): Boolean = path.path.any { isFavouritesFolder(it) }
+
+    /** Identifies a row across rebuilds: the ids from the top, so an item and its copy under Favourites differ. */
+    private fun keyOf(path: TreePath): String = path.path.drop(1).joinToString("/") { node ->
+        if (isFavouritesFolder(node)) FavouritesFolder.KEY else itemOf(node)?.id.orEmpty()
+    }
 
     private fun selectedPaths(): List<TreePath> = tree.selectionPaths.orEmpty().sortedBy { tree.getRowForPath(it) }
 
@@ -343,6 +380,8 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     }
 
     private fun canMove(direction: Int): Boolean {
+        // Favourites follow the order of the tree; move the item where it really is
+        if (selectedPaths().any { inFavourites(it) }) return false
         val item = selectedItems().singleOrNull() ?: return false
         val siblings = store.parentList(item) ?: return false
         return siblings.indexOfFirst { it === item } + direction in siblings.indices
@@ -450,9 +489,20 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
         select(items)
     }
 
+    private fun clearFavourites() {
+        val favourites = store.all().filter { it.favorite }
+        if (favourites.isEmpty()) return
+        val what = if (favourites.size == 1) "'${favourites[0].label()}'" else "all ${favourites.size} favourites"
+        if (Messages.showYesNoDialog(project, "Remove $what from Favourites? The commands themselves stay.",
+                "Easy Snippets", Messages.getQuestionIcon()) != Messages.YES) return
+        favourites.forEach { it.favorite = false }
+        store.changed()
+    }
+
     private fun rebuild(expandEverything: Boolean) {
-        val expandedIds = TreeUtil.collectExpandedPaths(tree).mapNotNull { itemOf(it.lastPathComponent)?.id }.toSet()
-        val selectedIds = selectedItems().map { it.id }.toSet()
+        val expandedKeys = TreeUtil.collectExpandedPaths(tree).map { keyOf(it) }.toSet()
+        val selectedKeys = selectedPaths().map { keyOf(it) }.toSet()
+        val hadFavourites = hasFavourites
         root.removeAllChildren()
         fun fill(parent: DefaultMutableTreeNode, items: List<SnippetItem>) {
             for (item in items) {
@@ -461,22 +511,36 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
                 if (item.folder) fill(node, item.children)
             }
         }
+        // Starred items, in tree order, in a folder at the top that is there only while something is starred
+        val favourites = store.all().filter { it.favorite }
+        hasFavourites = favourites.isNotEmpty()
+        if (hasFavourites) {
+            val folder = DefaultMutableTreeNode(FavouritesFolder)
+            root.add(folder)
+            fill(folder, favourites)
+        }
         fill(root, store.items)
         model.reload()
         for (node in nodes()) {
-            val item = itemOf(node) ?: continue
+            if (node.isLeaf) continue
+            val path = TreePath(node.path)
             val parentPath = TreePath((node.parent as DefaultMutableTreeNode).path)
             val parentExpanded = node.parent === root || tree.isExpanded(parentPath)
-            if (item.folder && parentExpanded && (expandEverything || item.id in expandedIds)) tree.expandPath(TreePath(node.path))
+            // The Favourites folder opens when it first appears, so the starred item is seen
+            val appeared = isFavouritesFolder(node) && !hadFavourites
+            if (parentExpanded && (expandEverything || appeared || keyOf(path) in expandedKeys)) tree.expandPath(path)
         }
-        select(store.all().filter { it.id in selectedIds })
+        val restored = nodes().map { TreePath(it.path) }.filter { keyOf(it) in selectedKeys }
+        tree.selectionPaths = restored.toTypedArray()
         updatePreview()
     }
 
     private fun nodes(): List<DefaultMutableTreeNode> =
         root.preorderEnumeration().asSequence().filterIsInstance<DefaultMutableTreeNode>().filter { it !== root }.toList()
 
-    private fun pathOf(item: SnippetItem): TreePath? = nodes().firstOrNull { itemOf(it) === item }?.let { TreePath(it.path) }
+    /** Where the item really is; its copy under Favourites only when it is shown nowhere else. */
+    private fun pathOf(item: SnippetItem): TreePath? = nodes().filter { itemOf(it) === item }.map { TreePath(it.path) }
+        .minByOrNull { if (inFavourites(it)) 1 else 0 }
 
     private fun expand(item: SnippetItem) {
         pathOf(item)?.let { tree.expandPath(it) }

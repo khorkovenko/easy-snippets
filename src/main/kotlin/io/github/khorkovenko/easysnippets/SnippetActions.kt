@@ -21,6 +21,7 @@ object EasySnippetsIcons {
     val Command: Icon = AllIcons.Debugger.Console
     val Folder: Icon = AllIcons.Nodes.Folder
     val Favorite: Icon = AllIcons.Nodes.Favorite
+    val ClearFavourites: Icon = IconLoader.getIcon("/icons/clearFavourites.svg", EasySnippetsIcons::class.java)
 }
 
 /**
