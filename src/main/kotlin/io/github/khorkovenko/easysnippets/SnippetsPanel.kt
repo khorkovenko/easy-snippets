@@ -38,11 +38,14 @@ import com.intellij.util.ui.EmptyIcon
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
 import java.awt.BorderLayout
+import java.awt.Cursor
 import java.awt.Font
 import java.awt.datatransfer.StringSelection
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.awt.event.KeyEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseMotionAdapter
 import java.awt.event.MouseEvent
 import javax.swing.Icon
 import javax.swing.JList
@@ -73,12 +76,15 @@ class SnippetsToolWindowFactory : ToolWindowFactory, DumbAware {
 
 /**
  * Renders a command as "description - command" and a folder with the number of commands in it. A favourite starts
- * with a star; with [reserveStarSpace] the other rows leave room for it, so names stay in one column.
+ * with a star. With [clickableStar] the others start with a hollow star to click; with [reserveStarSpace] they leave
+ * room for it, so names stay in one column.
  */
-fun renderSnippet(component: SimpleColoredComponent, item: SnippetItem, reserveStarSpace: Boolean = false) {
+fun renderSnippet(component: SimpleColoredComponent, item: SnippetItem, reserveStarSpace: Boolean = false,
+                  clickableStar: Boolean = false) {
     val icon = if (item.folder) EasySnippetsIcons.Folder else EasySnippetsIcons.Command
     component.icon = when {
         item.favorite -> RowIcon(EasySnippetsIcons.Favorite, icon)
+        clickableStar -> RowIcon(EasySnippetsIcons.NotFavorite, icon)
         reserveStarSpace -> RowIcon(EmptyIcon.create(EasySnippetsIcons.Favorite), icon)
         else -> icon
     }
@@ -138,7 +144,7 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
                     append(if (count == 1) "  1 item" else "  $count items", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
                     return
                 }
-                itemOf(value)?.let { renderSnippet(this, it, reserveStarSpace = hasFavourites) }
+                itemOf(value)?.let { renderSnippet(this, it, clickableStar = true) }
             }
         }
         TreeSpeedSearch.installOn(tree, true) { path ->
@@ -239,8 +245,31 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
         verticalToolbar.targetComponent = tree
         PopupHandler.installPopupMenu(tree, actions, "EasySnippetsPopup")
 
+        // The star at the start of a row is part of it: a click on it marks or unmarks the favourite
+        tree.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                if (e.button != MouseEvent.BUTTON1) return
+                val item = starItemAt(e) ?: return
+                item.favorite = !item.favorite
+                store.changed()
+                e.consume()
+            }
+        })
+        tree.addMouseMotionListener(object : MouseMotionAdapter() {
+            override fun mouseMoved(e: MouseEvent) {
+                val item = starItemAt(e)
+                tree.cursor = if (item != null) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) else Cursor.getDefaultCursor()
+                tree.toolTipText = when {
+                    item == null -> null
+                    item.favorite -> "Click to remove from Favourites"
+                    else -> "Click to add to Favourites"
+                }
+            }
+        })
+
         object : DoubleClickListener() {
             override fun onDoubleClick(event: MouseEvent): Boolean {
+                if (starItemAt(event) != null) return false
                 val item = selectedItems().singleOrNull() ?: return false
                 if (item.folder) return false
                 runSelected()
@@ -286,6 +315,20 @@ class SnippetsPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     }
 
     private fun itemOf(node: Any?): SnippetItem? = (node as? DefaultMutableTreeNode)?.userObject as? SnippetItem
+
+    /** The item whose star is under the mouse, or null. The star is the first part of the row's icon. */
+    private fun starItemAt(e: MouseEvent): SnippetItem? {
+        val path = tree.getClosestPathForLocation(e.x, e.y) ?: return null
+        val bounds = tree.getPathBounds(path) ?: return null
+        if (e.y < bounds.y || e.y >= bounds.y + bounds.height) return null
+        val item = itemOf(path.lastPathComponent) ?: return null
+        val row = tree.getRowForPath(path)
+        val cell = tree.cellRenderer.getTreeCellRendererComponent(tree, path.lastPathComponent, tree.isRowSelected(row),
+            tree.isExpanded(row), false, row, false) as? SimpleColoredComponent ?: return null
+        val x = e.x - bounds.x
+        val starStart = cell.insets.left + cell.ipad.left
+        return if (x >= starStart && x < starStart + EasySnippetsIcons.Favorite.iconWidth) item else null
+    }
 
     private fun isFavouritesFolder(node: Any?): Boolean = (node as? DefaultMutableTreeNode)?.userObject === FavouritesFolder
 

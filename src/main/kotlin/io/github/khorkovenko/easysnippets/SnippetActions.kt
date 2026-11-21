@@ -21,6 +21,8 @@ object EasySnippetsIcons {
     val Command: Icon = AllIcons.Debugger.Console
     val Folder: Icon = AllIcons.Nodes.Folder
     val Favorite: Icon = AllIcons.Nodes.Favorite
+    /** The star of an item that is not a favourite, to click in the tree. */
+    val NotFavorite: Icon = IconLoader.getIcon("/icons/starOutline.svg", EasySnippetsIcons::class.java)
     val ClearFavourites: Icon = IconLoader.getIcon("/icons/clearFavourites.svg", EasySnippetsIcons::class.java)
 }
 

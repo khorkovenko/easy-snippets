@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.khorkovenko.easysnippets"
-version = "1.0.2"
+version = "1.0.3"
 
 repositories {
     mavenCentral()
@@ -36,6 +36,8 @@ intellijPlatform {
             untilBuild = provider { null } // no upper bound
         }
         changeNotes = """
+            <p><b>1.0.3</b>: every row of the tree starts with a star to click: a filled one removes the item from the
+            favourites, a hollow one adds it.</p>
             <p><b>1.0.2</b>: a Remove All Favourites button (crossed star) on the toolbar unstars every command and
             folder at once.</p>
             <p><b>1.0.1</b>: the favourite star is shown at the start of a row, and starred items are listed in a
