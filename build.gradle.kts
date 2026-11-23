@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.khorkovenko.easysnippets"
-version = "1.0.3"
+version = "1.0.6"
 
 repositories {
     mavenCentral()
@@ -36,6 +36,13 @@ intellijPlatform {
             untilBuild = provider { null } // no upper bound
         }
         changeNotes = """
+            <p><b>1.0.6</b>: the shortcut opens a popup of the favourites only; the terminal button still lists every
+            command.</p>
+            <p><b>1.0.5</b>: the Easy Snippets popup and the Insert Snippet popup open right under the toolbar button
+            that was clicked, also where the toolbar does not pass the button along with the click.</p>
+            <p><b>1.0.4</b>: the Easy Snippets popup lists every command, the favourites first and the rest under the
+            names of their folders. It opens under the button that was clicked, or at the mouse pointer when opened by
+            the shortcut, instead of the middle of the screen.</p>
             <p><b>1.0.3</b>: every row of the tree starts with a star to click: a filled one removes the item from the
             favourites, a hollow one adds it.</p>
             <p><b>1.0.2</b>: a Remove All Favourites button (crossed star) on the toolbar unstars every command and

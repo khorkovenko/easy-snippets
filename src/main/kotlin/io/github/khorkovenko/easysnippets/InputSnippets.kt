@@ -19,7 +19,6 @@ import com.intellij.ui.SimpleTextAttributes
 import java.awt.Component
 import java.awt.Window
 import java.awt.datatransfer.StringSelection
-import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JRootPane
 import javax.swing.SwingUtilities
@@ -58,8 +57,7 @@ class InsertSnippetIntoInputAction : DumbAwareAction() {
             .setNamerForFiltering { "${it.item.label()} ${it.folderPath}" }
             .setItemChosenCallback { insert(project, editor, it.item) }
             .createPopup()
-        val button = e.inputEvent?.component as? JComponent
-        if (button != null && button.isShowing) popup.showUnderneathOf(button) else popup.showInBestPositionFor(e.dataContext)
+        showNearInvoker(popup, e)
     }
 
     private class Entry(val item: SnippetItem, val folderPath: String)

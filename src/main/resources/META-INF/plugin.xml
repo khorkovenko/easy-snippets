@@ -10,7 +10,7 @@
         <p><b>Snippets</b></p>
         <ul>
             <li>Commands with a description, in folders (nested too) or at the top level</li>
-            <li>Favourites popup on one shortcut (Ctrl+Alt+Shift+E by default): type to filter, Enter to run</li>
+            <li>Favourites popup on one shortcut (Ctrl+Alt+Shift+E by default), all commands from the button in the terminal: type to filter, Enter to run</li>
             <li>A shortcut of its own for any command or folder; only those appear in Settings | Keymap</li>
             <li>Sequences: run a selection, a folder, or a chained command step by step. The next step starts when the
                 previous one has finished, also over SSH and through <code>sudo su</code>: the plugin waits for the
@@ -58,8 +58,8 @@
     <actions>
         <action id="EasySnippets.ShowPopup"
                 class="io.github.khorkovenko.easysnippets.ShowSnippetsPopupAction"
-                text="Easy Snippets: Favourites..."
-                description="Show the favourite terminal commands and run the chosen one"
+                text="Easy Snippets..."
+                description="Show the terminal commands, favourites first, and run the chosen one"
                 icon="/icons/easySnippets.svg">
             <keyboard-shortcut first-keystroke="control alt shift E" keymap="$default"/>
             <add-to-group group-id="ToolsMenu" anchor="last"/>
